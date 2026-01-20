@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -90,4 +91,31 @@ func setWithConfig(dbConfig *pgxpool.Config) {
 func (c *Client) Close(ctx context.Context) error {
 	c.pool.Close()
 	return nil
+}
+
+// Query executes a query that returns rows
+func (c *Client) Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error) {
+	return c.pool.Query(ctx, query, args...)
+}
+
+// QueryRow executes a query that returns a single row
+func (c *Client) QueryRow(ctx context.Context, query string, args ...interface{}) pgx.Row {
+	return c.pool.QueryRow(ctx, query, args...)
+}
+
+// Exec executes a query that doesn't return rows
+func (c *Client) Exec(ctx context.Context, query string, args ...interface{}) (pgconn.CommandTag, error) {
+	return c.pool.Exec(ctx, query, args...)
+}
+
+// Ping checks the database connection
+func (c *Client) Ping(ctx context.Context) error {
+	return c.pool.Ping(ctx)
+}
+
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

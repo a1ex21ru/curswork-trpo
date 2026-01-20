@@ -1,0 +1,447 @@
+basePath: /
+definitions:
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.SuccessResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  models.Budget:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: integer
+      month:
+        type: integer
+      remaining:
+        type: number
+      spent:
+        type: number
+      total:
+        type: number
+      updatedAt:
+        type: string
+      year:
+        type: integer
+    type: object
+  models.CreateExpenseRequestDTO:
+    properties:
+      amount:
+        type: number
+      category:
+        type: string
+      description:
+        minLength: 10
+        type: string
+      title:
+        minLength: 3
+        type: string
+      vendor:
+        minLength: 2
+        type: string
+    required:
+    - amount
+    - category
+    - description
+    - title
+    - vendor
+    type: object
+  models.ExpenseRequest:
+    properties:
+      amount:
+        type: number
+      category:
+        type: string
+      comments:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      employee:
+        $ref: '#/definitions/models.User'
+      employeeId:
+        type: integer
+      id:
+        type: integer
+      reviewedAt:
+        type: string
+      reviewer:
+        $ref: '#/definitions/models.User'
+      reviewerId:
+        type: integer
+      status:
+        $ref: '#/definitions/models.RequestStatus'
+      title:
+        type: string
+      updatedAt:
+        type: string
+      vendor:
+        type: string
+    type: object
+  models.LoginDTO:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.LoginResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.RegisterUserDTO:
+    properties:
+      email:
+        type: string
+      firstName:
+        type: string
+      lastName:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/models.UserRole'
+        enum:
+        - employee
+        - management
+    required:
+    - email
+    - firstName
+    - lastName
+    - password
+    - role
+    type: object
+  models.RequestStatus:
+    enum:
+    - pending
+    - approved
+    - rejected
+    type: string
+    x-enum-varnames:
+    - StatusPending
+    - StatusApproved
+    - StatusRejected
+  models.StatsResponse:
+    properties:
+      approvedThisMonth:
+        type: integer
+      budgetRemaining:
+        type: number
+      budgetUsed:
+        type: number
+      pendingCount:
+        type: integer
+      totalApproved:
+        type: number
+      totalPending:
+        type: number
+    type: object
+  models.UpdateExpenseStatusDTO:
+    properties:
+      comments:
+        minLength: 10
+        type: string
+      status:
+        allOf:
+        - $ref: '#/definitions/models.RequestStatus'
+        enum:
+        - approved
+        - rejected
+    required:
+    - comments
+    - status
+    type: object
+  models.User:
+    properties:
+      createdAt:
+        type: string
+      email:
+        type: string
+      firstName:
+        type: string
+      id:
+        type: integer
+      lastName:
+        type: string
+      role:
+        $ref: '#/definitions/models.UserRole'
+      updatedAt:
+        type: string
+    type: object
+  models.UserRole:
+    enum:
+    - employee
+    - management
+    type: string
+    x-enum-varnames:
+    - RoleEmployee
+    - RoleManagement
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: REST API для системы учета внутриофисных расходов
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Expense System API
+  version: "1.0"
+paths:
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login and get JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /api/auth/me:
+    get:
+      description: Get current authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user
+      tags:
+      - auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user
+      parameters:
+      - description: Registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterUserDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Register user
+      tags:
+      - auth
+  /api/budget/current:
+    get:
+      description: Get budget for current month
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Budget'
+      security:
+      - BearerAuth: []
+      summary: Get current budget
+      tags:
+      - budget
+  /api/expenses:
+    get:
+      description: Get expense requests for current user or all (for management)
+      parameters:
+      - description: Status filter (all, pending, approved, rejected)
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ExpenseRequest'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get expense requests
+      tags:
+      - expenses
+    post:
+      consumes:
+      - application/json
+      description: Create a new expense request
+      parameters:
+      - description: Expense request data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateExpenseRequestDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.ExpenseRequest'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create expense request
+      tags:
+      - expenses
+  /api/expenses/{id}:
+    get:
+      description: Get a specific expense request
+      parameters:
+      - description: Expense request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ExpenseRequest'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get expense request by ID
+      tags:
+      - expenses
+  /api/expenses/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Approve or reject an expense request (management only)
+      parameters:
+      - description: Expense request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateExpenseStatusDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update expense request status
+      tags:
+      - expenses
+  /api/expenses/statistics:
+    get:
+      description: Get expense statistics (management only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.StatsResponse'
+      security:
+      - BearerAuth: []
+      summary: Get expense statistics
+      tags:
+      - expenses
+  /health:
+    get:
+      description: Check if the service is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
